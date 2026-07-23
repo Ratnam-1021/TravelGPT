@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelGPT – AI Trip Planner</title>
+    <meta name="description" content="AI-powered travel agent for custom itineraries, RAG policy retrieval, cost estimation, and PDF exports.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <!-- Background Animated Gradient Orbs -->
+    <div class="bg-gradient-orb orb-1"></div>
+    <div class="bg-gradient-orb orb-2"></div>
+    <div class="bg-gradient-orb orb-3"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header glass-card">
+            <div class="brand-logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-compass fa-spin-hover"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>TravelGPT <span class="badge-ai">RAG Agent</span></h1>
+                    <p class="tagline">Intelligent AI Trip Planning & Cost Optimization Engine</p>
+                </div>
+            </div>
+            <div class="header-status">
+                <span class="status-indicator online"></span>
+                <span id="ragStatusText">Groq Llama-3.3 + ChromaDB Active</span>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="main-content">
+            <!-- Left Panel: Trip Configuration Form -->
+            <section class="form-section glass-card">
+                <div class="section-title">
+                    <i class="fa-solid fa-sliders"></i>
+                    <h2>Configure Your Trip</h2>
+                </div>
+
+                <form id="tripForm" onsubmit="event.preventDefault(); generateItinerary();">
+                    <!-- Destination -->
+                    <div class="form-group">
+                        <label for="destination">Destination</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <input type="text" id="destination" placeholder="e.g. Paris, Tokyo, Bali, New York" value="Paris" required>
+                        </div>
+                        <div class="quick-chips" id="quickDestinations">
+                            <span class="chip active" onclick="setDestination('Paris')">🇫🇷 Paris</span>
+                            <span class="chip" onclick="setDestination('Tokyo')">🇯🇵 Tokyo</span>
+                            <span class="chip" onclick="setDestination('New York')">🇺🇸 NYC</span>
+                            <span class="chip" onclick="setDestination('Bali')">🇮🇩 Bali</span>
+                            <span class="chip" onclick="setDestination('Rome')">🇮🇹 Rome</span>
+                        </div>
+                    </div>
+
+                    <!-- Duration & Travelers -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="duration">Duration (Days): <span id="durationValue">5</span></label>
+                            <input type="range" id="duration" min="1" max="14" value="5" oninput="document.getElementById('durationValue').innerText = this.value">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="travelers">Travelers</label>
+                            <select id="travelers">
+                                <option value="1">Solo Traveler (1)</option>
+                                <option value="2" selected>Couple / Pair (2)</option>
+                                <option value="3">Small Family (3)</option>
+                                <option value="4">Group (4+)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Budget & Currency -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="budget">Target Budget</label>
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-wallet"></i>
+                                <input type="number" id="budget" value="2200" min="200" step="50" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="currency">Currency</label>
+                            <select id="currency">
+                                <option value="USD" selected>USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="INR">INR (₹)</option>
+                                <option value="JPY">JPY (¥)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Travel Style -->
+                    <div class="form-group">
+                        <label>Travel Style</label>
+                        <div class="style-selector">
+                            <button type="button" class="style-btn active" onclick="setTravelStyle('Balanced', this)">
+                                <i class="fa-solid fa-scale-balanced"></i> Balanced
+                            </button>
+                            <button type="button" class="style-btn" onclick="setTravelStyle('Luxury', this)">
+                                <i class="fa-solid fa-gem"></i> Luxury
+                            </button>
+                            <button type="button" class="style-btn" onclick="setTravelStyle('Budget', this)">
+                                <i class="fa-solid fa-piggy-bank"></i> Budget
+                            </button>
+                            <button type="button" class="style-btn" onclick="setTravelStyle('Cultural', this)">
+                                <i class="fa-solid fa-landmark"></i> Cultural
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Interests -->
+                    <div class="form-group">
+                        <label>Interests & Activities</label>
+                        <div class="interest-chips" id="interestContainer">
+                            <span class="chip-toggle active" onclick="toggleInterest(this)">🎨 Art & Museums</span>
+                            <span class="chip-toggle active" onclick="toggleInterest(this)">🥐 Gastronomy</span>
+                            <span class="chip-toggle" onclick="toggleInterest(this)">🛍️ Shopping</span>
+                            <span class="chip-toggle active" onclick="toggleInterest(this)">🏰 History</span>
+                            <span class="chip-toggle" onclick="toggleInterest(this)">🌿 Nature & Parks</span>
+                            <span class="chip-toggle" onclick="toggleInterest(this)">🍸 Nightlife</span>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="generateBtn" class="btn-primary glow-btn">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Build AI Itinerary
+                    </button>
+                </form>
+            </section>
+
+            <!-- Right Panel: Itinerary Results & Interactive View -->
+            <section class="results-section glass-card" id="resultsCard">
+                <!-- Empty Placeholder State -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">
+                        <i class="fa-solid fa-earth-americas"></i>
+                    </div>
+                    <h3>Ready to Plan Your Dream Journey</h3>
+                    <p>Enter your destination, budget, and style, then click <strong>"Build AI Itinerary"</strong> to generate your itinerary with RAG guide lookup and PDF export.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading-state hidden" id="loadingState">
+                    <div class="spinner"></div>
+                    <h3 id="loadingText">Retrieving Guides & Ingesting Travel Policy...</h3>
+                    <p>TravelGPT Agent is searching ChromaDB and structuring your daily timeline.</p>
+                </div>
+
+                <!-- Itinerary Output View -->
+                <div class="itinerary-output hidden" id="itineraryOutput">
+                    <!-- Itinerary Title & PDF Export Action -->
+                    <div class="output-header">
+                        <div>
+                            <h2 id="outTitle">5-Day Cultural Getaway to Paris</h2>
+                            <p class="summary-text" id="outSummary"></p>
+                        </div>
+                        <button class="btn-secondary" onclick="exportPDF()">
+                            <i class="fa-solid fa-file-pdf"></i> Download PDF
+                        </button>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tab-nav">
+                        <button class="tab-btn active" onclick="switchTab('tabTimeline', this)">
+                            <i class="fa-solid fa-calendar-days"></i> Itinerary Schedule
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('tabCost', this)">
+                            <i class="fa-solid fa-chart-pie"></i> Budget Breakdown
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('tabRAG', this)">
+                            <i class="fa-solid fa-book-bookmark"></i> RAG Knowledge Context
+                        </button>
+                    </div>
+
+                    <!-- Tab 1: Itinerary Schedule Timeline -->
+                    <div class="tab-content" id="tabTimeline">
+                        <div class="days-accordion" id="daysContainer"></div>
+                    </div>
+
+                    <!-- Tab 2: Cost Breakdown Visualizer -->
+                    <div class="tab-content hidden" id="tabCost">
+                        <div class="cost-overview-box">
+                            <div class="cost-stat">
+                                <span class="stat-label">Target Budget</span>
+                                <span class="stat-value" id="costTarget">$0</span>
+                            </div>
+                            <div class="cost-stat">
+                                <span class="stat-label">Estimated Total</span>
+                                <span class="stat-value highlight" id="costTotal">$0</span>
+                            </div>
+                            <div class="cost-stat">
+                                <span class="stat-label">Feasibility</span>
+                                <span class="badge-status" id="costStatus">On Budget</span>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar vs Budget -->
+                        <div class="budget-meter">
+                            <div class="meter-header">
+                                <span>Budget Consumption</span>
+                                <span id="budgetMeterText">0%</span>
+                            </div>
+                            <div class="meter-bar">
+                                <div class="meter-fill" id="meterFill"></div>
+                            </div>
+                        </div>
+
+                        <!-- Categorized Expense Cards Grid -->
+                        <div class="expense-grid" id="expenseGrid"></div>
+                    </div>
+
+                    <!-- Tab 3: RAG Knowledge Context -->
+                    <div class="tab-content hidden" id="tabRAG">
+                        <div class="rag-info-banner">
+                            <i class="fa-solid fa-database"></i>
+                            <p>Below are destination guides & travel policy documents retrieved from <strong>ChromaDB</strong> that influenced this trip build.</p>
+                        </div>
+                        <div class="rag-list" id="ragList"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Application Script -->
+    <script src="static/js/app.js"></script>
+</body>
+</html>

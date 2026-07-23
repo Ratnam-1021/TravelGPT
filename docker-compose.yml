@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  travelgpt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: travelgpt_app
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEFAULT_PROVIDER=${DEFAULT_PROVIDER:-groq}
+    env_file:
+      - .env
+    volumes:
+      - chroma_data:/app/backend/chroma_db
+    restart: unless-stopped
+
+volumes:
+  chroma_data:
